@@ -1,8 +1,66 @@
+procedure afficherMessage(msg: chaine)
+    ecrire("Message : ", msg)
+finprocedure
+
+fonction estMajeur(a: entier): booleen
+    si a >= 18 et non (a > 120) alors
+        retourne vrai
+    sinon
+        retourne faux
+    finsi
+finfonction
+
+fonction calculerMoyenne(n1: entier, n2: entier): reel
+    retourne (n1 + n2) / 2.0
+finfonction
+
 Debut
-i: Entier
-i <- 0
-tantque i < 3 faire
-    ecrire("i=", i)
-    i <- i + 1
-fintq
+
+    entier age
+    entier note1
+    entier note2
+    reel moyenne
+    booleen majeur
+
+    ecrire("Donner l'âge : ")
+    lire(age)
+
+    majeur <- estMajeur(age)
+
+    si majeur alors
+        afficherMessage("Vous êtes majeur.")
+    sinon
+        afficherMessage("Vous êtes mineur.")
+    finsi
+
+    ecrire("Entrer la note 1 : ")
+    lire(note1)
+
+    ecrire("Entrer la note 2 : ")
+    lire(note2)
+
+    moyenne <- calculerMoyenne(note1, note2)
+
+    ecrire("Moyenne est : ", moyenne)
+
+    si majeur et (moyenne >= 10 ou moyenne == 9) alors
+        afficherMessage("Admis")
+    sinon
+        afficherMessage("Non admis")
+    finsi
+
+    entier i
+    entier somme <- 0
+
+    pour i de 1 a 10 faire
+        somme <- somme + i
+    finpour
+
+    ecrire("Somme de 1 à 10 est : ", somme)
+
+    repeter
+        ecrire("Tapez un nombre négatif : ")
+        lire(i)
+    jusqua i < 0
+
 Fin
