@@ -1,0 +1,10 @@
+Debut
+x : Entier
+nom : Chaine
+ecrire("Donnez votre nom:")
+lire(nom)
+lire(x)
+si x>5 alors
+ecrire("Bonjour, ", nom, " ! Vous avez ", x, " ans.")
+finsi
+Fin
