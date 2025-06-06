@@ -27,14 +27,20 @@ int main() {
 
     string line;
     output << "#include <iostream>\nusing namespace std;\n\n";
+    int openBlocks = 0;
 
     while (getline(input, line)) {
-        while (!line.empty() && isspace(line[0])) line.erase(0, 1);
+        // Trim
+        while (!line.empty() && isspace(line.front())) line.erase(line.begin());
         while (!line.empty() && isspace(line.back())) line.pop_back();
 
         if (line == "Debut") {
             output << "int main() {\n";
         } else if (line == "Fin") {
+            while (openBlocks > 0) {
+                output << "    }\n";
+                openBlocks--;
+            }
             output << "    return 0;\n}\n";
         } else if (line.find("ecrire(") != string::npos) {
             size_t start = line.find("ecrire(") + 7;
@@ -46,9 +52,8 @@ int main() {
 
                 output << "    cout";
                 for (auto& segment : segments) {
-                    while (!segment.empty() && isspace(segment[0])) segment.erase(0, 1);
+                    while (!segment.empty() && isspace(segment.front())) segment.erase(segment.begin());
                     while (!segment.empty() && isspace(segment.back())) segment.pop_back();
-
                     output << " << " << segment;
                 }
                 output << " << endl;\n";
@@ -65,9 +70,9 @@ int main() {
             string varName = line.substr(0, colon);
             string type = line.substr(colon + 1);
 
-            while (!varName.empty() && isspace(varName[0])) varName.erase(0, 1);
+            while (!varName.empty() && isspace(varName.front())) varName.erase(varName.begin());
             while (!varName.empty() && isspace(varName.back())) varName.pop_back();
-            while (!type.empty() && isspace(type[0])) type.erase(0, 1);
+            while (!type.empty() && isspace(type.front())) type.erase(type.begin());
             while (!type.empty() && isspace(type.back())) type.pop_back();
 
             if (type == "Entier") {
@@ -88,12 +93,41 @@ int main() {
             size_t end = line.find("alors");
             if (end > start) {
                 string condition = line.substr(start, end - start);
-                while (!condition.empty() && isspace(condition[0])) condition.erase(0, 1);
+                while (!condition.empty() && isspace(condition.front())) condition.erase(condition.begin());
                 while (!condition.empty() && isspace(condition.back())) condition.pop_back();
                 output << "    if (" << condition << ") {\n";
+                openBlocks++;
             }
+        } else if (line == "sinon") {
+            output << "    } else {\n";
+            openBlocks++;
         } else if (line == "finsi" || line == "fin si") {
             output << "    }\n";
+            if (openBlocks > 0) openBlocks--;
+        } else if (line.find("tantque") != string::npos || line.find("tq") != string::npos) {
+            size_t start = (line.find("tantque") != string::npos) ? line.find("tantque") + 7 : line.find("tq") + 2;
+            size_t end = line.find("faire");
+            if (end != string::npos && end > start) {
+                string condition = line.substr(start, end - start);
+                while (!condition.empty() && isspace(condition.front())) condition.erase(condition.begin());
+                while (!condition.empty() && isspace(condition.back())) condition.pop_back();
+                output << "    while (" << condition << ") {\n";
+                openBlocks++;
+            }
+        } else if (line.find("fintq") != string::npos || line.find("fintantque") != string::npos || line.find("fin tantque") != string::npos) {
+            output << "    }\n";
+            if (openBlocks > 0) openBlocks--;
+        } else if (line.find("<-") != string::npos) {
+            size_t pos = line.find("<-");
+            string left = line.substr(0, pos);
+            string right = line.substr(pos + 2);
+
+            while (!left.empty() && isspace(left.front())) left.erase(left.begin());
+            while (!left.empty() && isspace(left.back())) left.pop_back();
+            while (!right.empty() && isspace(right.front())) right.erase(right.begin());
+            while (!right.empty() && isspace(right.back())) right.pop_back();
+
+            output << "    " << left << " = " << right << ";\n";
         }
     }
 
