@@ -7,7 +7,6 @@
 #include <sstream>
 using namespace std;
 
-// Convert string to lowercase
 string toLowerCase(const string& s) {
     string result = s;
     transform(result.begin(), result.end(), result.begin(),
@@ -15,15 +14,12 @@ string toLowerCase(const string& s) {
     return result;
 }
 
-// Trim whitespace from both ends
 string trim(const string& str) {
     size_t first = str.find_first_not_of(" \t");
     if (first == string::npos) return "";
     size_t last = str.find_last_not_of(" \t");
     return str.substr(first, (last - first + 1));
 }
-
-// Split variables by commas, ignoring commas inside quotes (simple)
 void splitVars(const string& str, vector<string>& vars) {
     string current;
     bool inQuotes = false;
@@ -108,7 +104,6 @@ string makevariable(string l) {
     }
     return "";
 }
-// Translate a single line and output C++ code to 'output'
 void translateLine(const string& line, ostream& output, int& openBlocks) {
     string l = trim(line);
     if (l.empty() || l[0] == '#') return;
@@ -135,7 +130,6 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
         output << trim(line.substr(0, pos)) << " = " << trim(line.substr(pos + 2)) << ";\n";
         return;
     }
-    // Control structures:
     if (l.find("si") == 0 && l.find("alors") != string::npos) {
         string condition = trim(l.substr(2, l.find("alors") - 2));
         output << "    if (" << convertLogicOperators(condition) << ") {\n";
@@ -152,7 +146,6 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
         return;
     }
     if (l.find("pour") == 0) {
-        // for var de start a end faire
         size_t dePos = l.find("de");
         size_t aPos = l.find("a");
         size_t fairePos = l.find("faire");
@@ -197,8 +190,6 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
         if (openBlocks > 0) openBlocks--;
         return;
     }
-
-    // Variable declarations and initializations
     for (const string& t : {"entier", "reel", "booleen", "chaine", "caractere"}) {
         if (l.find(t) == 0 && (l.size() == t.size() || isspace(l[t.size()]))) {
             string rest = trim(l.substr(t.size()));
@@ -219,7 +210,6 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
             }
         }
     }
-    // Procedure declaration
     if (l.find("procedure ") == 0) {
         string procName = l.substr(10);
         procName = procName.substr(0, procName.find('('));
@@ -247,7 +237,6 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
         openBlocks++;
         return;
     }
-    // Function declaration
     if (l.find("fonction ") == 0) {
         string procName = l.substr(9);
         procName = procName.substr(0, procName.find('('));
@@ -275,20 +264,15 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
         openBlocks++;
         return;
     }
-    // End of procedure/function
     if (l == "finprocedure" || l == "finfonction") {
         output << "}\n";
         if (openBlocks > 0) openBlocks--;
         return;
     }
-
-    // Function/procedure call (roughly)
     if (l.find("(") != string::npos && l.back() == ')') {
         output << l << ";\n";
         return;
     }
-
-    // Assignments with <- 
     size_t assignPos = l.find("<-");
     if (assignPos != string::npos) {
         string left = trim(l.substr(0, assignPos));
@@ -302,7 +286,6 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
             output << "    return false;\n";}
     else if (line.find("retourne") == 0) {
             output << "    return " << trim(line.substr(8)) << ";\n";}
-    // Default: output as comment to avoid losing any line
     else{
         output << "// " << l << "\n";
     }
@@ -311,17 +294,14 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
 int main() {
     ifstream input("algo.tn");
     ofstream output("translated.cpp");
-
     string line;
     output << "#include <iostream>\n#include <cmath>\n#include <algorithm>\n#include <string>\nusing namespace std;\n\n";
     int openBlocks = 0;
     bool inMain = false;
-
     while (getline(input, line)) {
         line = trim(line);
         if (line.empty()) continue;
 
-        // Handle main start
         if (line == "Debut") {
             output << "int main() {\n";
             openBlocks++;
@@ -337,10 +317,7 @@ int main() {
 
         translateLine(line, output, openBlocks);
     }
-
-    // Close any still-open blocks just in case
     while (openBlocks-- > 0) output << "}\n";
-
     input.close();
     output.close();
     cout << "Translation finished.\n";
