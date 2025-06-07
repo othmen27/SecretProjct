@@ -76,12 +76,65 @@ void splitRespectingQuotes(const string& s, vector<string>& parts) {
     }
     if (!current.empty()) parts.push_back(current);
 }
-
+void splitrespectingquotespoint(const string& s, vector<string>& parts){
+    bool inQuotes = false;
+    string current;
+    for (char c : s) {
+        if (c == '"') {
+            inQuotes = !inQuotes;
+            current +=c;
+            }
+        else if (c == ':' && !inQuotes) {
+                parts.push_back(current);
+                current.clear();}
+        else{
+                current+=c;
+            }
+        }
+    if(!current.empty()) parts.push_back(current);
+}
+string makevariable(string l) {
+    string result;
+    vector<string> types = {"entier", "reel", "booleen", "chaine", "caractere"};
+    vector<string> parts;
+    splitrespectingquotespoint(l,parts);
+    parts[1]=trim(parts[1]);
+    for (const string& t : types) {
+        if (parts[1]==t) {
+            string rest = parts[0];
+            string type = translateType(t);
+            return type + " " + rest;
+        }
+    }
+    return "";
+}
 // Translate a single line and output C++ code to 'output'
 void translateLine(const string& line, ostream& output, int& openBlocks) {
     string l = trim(line);
     if (l.empty() || l[0] == '#') return;
-
+    if(line.find("ecrire(")==0){
+        size_t start =7;
+        size_t end = line.rfind(")");
+        if(end==string::npos || end <= start) return;
+        string content= line.substr(start,end-start);
+        vector<string> segments;
+        splitRespectingQuotes(content,segments);
+        output << "cout";
+        for(auto& seg : segments)
+            output << " <<" << trim(seg);
+        output << " << endl;\n";
+        return;
+    }
+    if(line.find("lire(")==0){
+        size_t start = 5, end = line.rfind(")");
+        output << "cin >> " << trim(line.substr(start, end - start)) << ";\n";
+        return;
+    }
+    if(line.find("<-") !=string::npos){
+        size_t pos = line.find("<-");
+        output << trim(line.substr(0, pos)) << " = " << trim(line.substr(pos + 2)) << ";\n";
+        return;
+    }
     // Control structures:
     if (l.find("si") == 0 && l.find("alors") != string::npos) {
         string condition = trim(l.substr(2, l.find("alors") - 2));
@@ -150,16 +203,13 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
         if (l.find(t) == 0 && (l.size() == t.size() || isspace(l[t.size()]))) {
             string rest = trim(l.substr(t.size()));
             if (rest.empty()) return;
-
             size_t initPos = rest.find("<-");
             if (initPos != string::npos) {
-                // Declaration + initialization (only one var supported)
                 string varName = trim(rest.substr(0, initPos));
                 string val = trim(rest.substr(initPos + 2));
                 output << translateType(t) << " " << varName << " = " << val << ";\n";
                 return;
             } else {
-                // Multiple declarations without initialization
                 vector<string> vars;
                 splitVars(rest, vars);
                 for (auto& v : vars) {
@@ -169,20 +219,59 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
             }
         }
     }
-
     // Procedure declaration
     if (l.find("procedure ") == 0) {
         string procName = l.substr(10);
         procName = procName.substr(0, procName.find('('));
-        output << "void " << procName << "() {\n";
+        size_t openParen = l.find('(');
+        size_t closeParen = l.find(')', openParen);
+        string params = l.substr(openParen, closeParen - openParen);
+        params = params.substr(1, params.find(')')-1);
+        vector<string> parts;
+        splitRespectingQuotes(params,parts);
+        int length = parts.size();
+        string paramStr = "";
+        for (size_t i = 0; i < length; i++){
+            string cppVar = makevariable(parts[i]);
+            cppVar = trim(cppVar);
+            if (!cppVar.empty() && cppVar.back() == ';') {
+                cppVar.pop_back();
+            }
+            if(!paramStr.empty()) paramStr += ", ";
+            paramStr += cppVar;
+            if(i>1){
+                paramStr+=", ";
+            }
+        }
+        output << "void " << procName << "("<<paramStr<<") {\n";
         openBlocks++;
         return;
     }
     // Function declaration
     if (l.find("fonction ") == 0) {
-        string funcName = l.substr(9);
-        funcName = funcName.substr(0, funcName.find('('));
-        output << "auto " << funcName << "() {\n";
+        string procName = l.substr(9);
+        procName = procName.substr(0, procName.find('('));
+        size_t openParen = l.find('(');
+        size_t closeParen = l.find(')', openParen);
+        string params = l.substr(openParen, closeParen - openParen);
+        params = params.substr(1, params.find(')')-1);
+        vector<string> parts;
+        splitRespectingQuotes(params,parts);
+        int length = parts.size();
+        string paramStr = "";
+        for (size_t i = 0; i < length; i++){
+            string cppVar = makevariable(parts[i]);
+            cppVar = trim(cppVar);
+            if (!cppVar.empty() && cppVar.back() == ';') {
+                cppVar.pop_back();
+            }
+            if(!paramStr.empty()) paramStr += ", ";
+            paramStr += cppVar;
+            if(i>1){
+                paramStr+=", ";
+            }
+        }
+        output << "auto " << procName << "("<<paramStr<<") {\n";
         openBlocks++;
         return;
     }
@@ -207,9 +296,16 @@ void translateLine(const string& line, ostream& output, int& openBlocks) {
         output << left << " = " << right << ";\n";
         return;
     }
-
+    if (line == "retourne vrai") {
+            output << "    return true;\n";}
+    else if (line == "retourne faux") {
+            output << "    return false;\n";}
+    else if (line.find("retourne") == 0) {
+            output << "    return " << trim(line.substr(8)) << ";\n";}
     // Default: output as comment to avoid losing any line
-    output << "// " << l << "\n";
+    else{
+        output << "// " << l << "\n";
+    }
 }
 
 int main() {

@@ -50,7 +50,8 @@ Debut
     finsi
 
     entier i
-    entier somme <- 0
+    entier somme 
+    somme <- 0
 
     pour i de 1 a 10 faire
         somme <- somme + i
